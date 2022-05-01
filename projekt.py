@@ -48,6 +48,8 @@ def main():
         blur = cv.bilateralFilter(thresh_whites, d, sigmaColor, sigmaSpace)
 
 
+
+
         key_code = cv.waitKey(10)
         if key_code == 27:
             # escape key pressed
@@ -57,6 +59,25 @@ def main():
         # cv.imshow('org', dst)
         cv.imshow('colour', img_scaled[:, :, 0])
 
+
+
+    kernel = np.ones((3, 3), np.uint8)
+
+    erosion = cv.erode(blur, kernel, iterations=1)
+    dilation = cv.dilate(erosion, kernel, iterations=4)
+
+    #
+    # contours, hierarchy = cv.findContours(erosion, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+    #
+    # cv.drawContours(erosion, contours, -1, (0, 255, 0), 3)
+    #
+    # cv.imshow('contours', erosion)
+
+    contours, hierarchy = cv.findContours(erosion, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    cv.drawContours(img_scaled, contours, -1, (0, 255, 0), 3)
+
+    cv.imshow('contours', img_scaled)
+    cv.waitKey(0)
     cv.destroyAllWindows()
 
 
