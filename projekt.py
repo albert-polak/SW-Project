@@ -30,38 +30,44 @@ def main():
 
     kernel = np.ones((3, 3), np.uint8)
 
-    cv.createTrackbar('C', 'img', C, 30, empty_callback)
-    cv.createTrackbar('block_size', 'img', block_size, 255, empty_callback)
+    # cv.createTrackbar('C', 'img', C, 30, empty_callback)
+    # cv.createTrackbar('block_size', 'img', block_size, 255, empty_callback)
     # cv.createTrackbar('d', 'img', d, 30, empty_callback)
     # cv.createTrackbar('sigmaColor', 'img', sigmaColor, 255, empty_callback)
     # cv.createTrackbar('sigmaSpace', 'img', sigmaSpace, 255, empty_callback)
     cv.createTrackbar('erosion', 'img', erosions, 10, empty_callback)
     cv.createTrackbar('dilation', 'img', dilations, 10, empty_callback)
+    cv.createTrackbar('threshold', 'img', threshold, 255, empty_callback)
 
 
-    thresh_whites = cv.adaptiveThreshold(img_scaled[:, :, 0], 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY,
+    thresh_whites = cv.adaptiveThreshold(img_scaled[:,:,0], 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY,
                                          round_up_to_odd(block_size), C)
 
 
     while True:
         # d = cv.getTrackbarPos('d', 'img')
-        C = cv.getTrackbarPos('C', 'img')
-        block_size = cv.getTrackbarPos('block_size', 'img')
+        # C = cv.getTrackbarPos('C', 'img')
+        # block_size = cv.getTrackbarPos('block_size', 'img')
         # sigmaColor = cv.getTrackbarPos('sigmaColor', 'img')
         # sigmaSpace = cv.getTrackbarPos('sigmaSpace', 'img')
         erosions = cv.getTrackbarPos('erosion', 'img')
         dilations = cv.getTrackbarPos('dilation', 'img')
+        threshold = cv.getTrackbarPos('threshold', 'img')
 
-        thresh_whites = cv.adaptiveThreshold(img_scaled[:, :, 0], 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY,
-                                             round_up_to_odd(block_size), C)
+        # thresh_whites = cv.adaptiveThreshold(img_scaled[:,:,0], 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY,
+        #                                      round_up_to_odd(block_size), C)
+        ret, thresh_whites = cv.threshold(img_scaled[:,:,0], threshold, 255, cv.THRESH_BINARY)
+
 
         dilation = cv.dilate(thresh_whites, kernel, iterations=dilations)
         erosion = cv.erode(dilation, kernel, iterations=erosions)
         # erosion = cv.dilate(erosion, kernel, iterations=dilations)
+        # opening = cv.morphologyEx(thresh_whites, cv.MORPH_OPEN, kernel)
 
-        blur = cv.medianBlur(erosion, 11)
-        blur = cv.bilateralFilter(blur, d, sigmaColor, sigmaSpace)
-
+        blur = cv.medianBlur(erosion, 3)
+        # cv.pyrMeanShiftFiltering()
+        # blur = cv.bilateralFilter(blur, d, sigmaColor, sigmaSpace)
+        # blur = cv.GaussianBlur(blur, (5, 5), 0)
 
         key_code = cv.waitKey(10)
         if key_code == 27:
@@ -70,7 +76,8 @@ def main():
 
         cv.imshow('img', blur)
         # cv.imshow('org', dst)
-        cv.imshow('colour', img_scaled[:, :, 0])
+        cv.imshow('colour', img_scaled[:,:,0])
+
 
 
 
@@ -86,7 +93,7 @@ def main():
     #
     # cv.imshow('contours', erosion)
 
-    inv = cv.bitwise_not(erosion)
+    inv = cv.bitwise_not(blur)
 
     contours, hierarchy = cv.findContours(inv, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     cv.drawContours(img_scaled, contours, -1, (0, 255, 0), 3)
