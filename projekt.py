@@ -20,8 +20,7 @@ def main():
     cv.namedWindow('img')
 
     threshold = 87
-    C = -3
-    block_size = 11
+
     d = 9
     sigmaColor = 145
     sigmaSpace = 75
@@ -30,9 +29,6 @@ def main():
 
     kernel = np.ones((3, 3), np.uint8)
 
-    # cv.createTrackbar('C', 'img', C, 30, empty_callback)
-    # cv.createTrackbar('block_size', 'img', block_size, 255, empty_callback)
-    # cv.createTrackbar('d', 'img', d, 30, empty_callback)
     # cv.createTrackbar('sigmaColor', 'img', sigmaColor, 255, empty_callback)
     # cv.createTrackbar('sigmaSpace', 'img', sigmaSpace, 255, empty_callback)
     cv.createTrackbar('erosion', 'img', erosions, 10, empty_callback)
@@ -40,29 +36,22 @@ def main():
     cv.createTrackbar('threshold', 'img', threshold, 255, empty_callback)
 
 
-    thresh_whites = cv.adaptiveThreshold(img_scaled[:,:,0], 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY,
-                                         round_up_to_odd(block_size), C)
+
 
 
     while True:
-        # d = cv.getTrackbarPos('d', 'img')
-        # C = cv.getTrackbarPos('C', 'img')
-        # block_size = cv.getTrackbarPos('block_size', 'img')
-        # sigmaColor = cv.getTrackbarPos('sigmaColor', 'img')
-        # sigmaSpace = cv.getTrackbarPos('sigmaSpace', 'img')
+
         erosions = cv.getTrackbarPos('erosion', 'img')
         dilations = cv.getTrackbarPos('dilation', 'img')
         threshold = cv.getTrackbarPos('threshold', 'img')
 
-        # thresh_whites = cv.adaptiveThreshold(img_scaled[:,:,0], 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY,
-        #                                      round_up_to_odd(block_size), C)
+
         ret, thresh_whites = cv.threshold(img_scaled[:,:,0], threshold, 255, cv.THRESH_BINARY)
 
 
         dilation = cv.dilate(thresh_whites, kernel, iterations=dilations)
         erosion = cv.erode(dilation, kernel, iterations=erosions)
-        # erosion = cv.dilate(erosion, kernel, iterations=dilations)
-        # opening = cv.morphologyEx(thresh_whites, cv.MORPH_OPEN, kernel)
+
 
         blur = cv.medianBlur(erosion, 3)
         # cv.pyrMeanShiftFiltering()
@@ -77,21 +66,6 @@ def main():
         cv.imshow('img', blur)
         # cv.imshow('org', dst)
         cv.imshow('colour', img_scaled[:,:,0])
-
-
-
-
-
-
-    # erosion = cv.erode(blur, kernel, iterations=1)
-    # dilation = cv.dilate(erosion, kernel, iterations=4)
-
-    #
-    # contours, hierarchy = cv.findContours(erosion, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-    #
-    # cv.drawContours(erosion, contours, -1, (0, 255, 0), 3)
-    #
-    # cv.imshow('contours', erosion)
 
     inv = cv.bitwise_not(blur)
 
