@@ -13,7 +13,7 @@ def round_up_to_odd(f):
 
 
 def main():
-    img = cv.imread('projekt/img_001.jpg')
+    img = cv.imread('projekt/img_004.jpg')
     img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
     gray = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
     hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -30,22 +30,22 @@ def main():
     sigmaColor = 145
     sigmaSpace = 75
     block_size = 11
-    erosions = 0
-    dilations = 0
+    erosions = 2
+    dilations = 2
 
     # in range variables
     # hue_low = 68
     hue_low = 0
     saturation_low = 0
-    value_low = 169
-    hue_high = 122
+    value_low = 166
+    hue_high = 174
     saturation_high = 36
-    value_high = 194
+    value_high = 197
 
 
 
     kernel = np.ones((3, 3), np.uint8)
-    se = np.ones((7, 7), dtype='uint8')
+    se = np.ones((5, 5), dtype='uint8')
 
     # cv.createTrackbar('sigmaColor', 'img', sigmaColor, 255, empty_callback)
     # cv.createTrackbar('sigmaSpace', 'img', sigmaSpace, 255, empty_callback)
@@ -88,15 +88,21 @@ def main():
         ret3, thresh_blues = cv.threshold(img_scaled[:, :, 2], threshold_blues, 255, cv.THRESH_BINARY)
 
         thresh_all = cv.bitwise_and(thresh_color, thresh_blues)
-        thresh_all = cv.bitwise_and(thresh_all, cv.bitwise_not(mask1))
+        # thresh_all = cv.bitwise_and(thresh_all, cv.bitwise_not(mask1))
         # thresh_whites = cv.adaptiveThreshold(img_scaled[:, :, 0], 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY,
         #                                      round_up_to_odd(block_size), C)
 
         dilation = cv.dilate(thresh_all, kernel, iterations=dilations)
         erosion = cv.erode(dilation, kernel, iterations=erosions)
 
-        blur = cv.medianBlur(erosion, 3)
+        blur = cv.medianBlur(erosion, 5)
         blur = cv.morphologyEx(blur, cv.MORPH_OPEN, se)
+
+        dilation_whites = cv.dilate(cv.bitwise_not(mask1), kernel, iterations=dilations)
+        erosion_whites = cv.erode(dilation_whites, kernel, iterations=erosions)
+
+        blur_whites = cv.medianBlur(erosion_whites, 5)
+        blur_whites = cv.morphologyEx(blur_whites, cv.MORPH_OPEN, se)
 
         # white threshold morphology
         # dilation_whites = cv.dilate(thresh_whites, kernel, iterations=dilations)
@@ -115,24 +121,31 @@ def main():
 
         cv.imshow('img', blur)
         cv.imshow('blur', blur)
-        cv.imshow('thresh_color', thresh_color)
-        # cv.imshow('thresh_whites', thresh_whites)
-        cv.imshow('thresh_blues', thresh_blues)
+
         cv.imshow('whites', mask1)
         cv.imshow('whites_to_watch', mask1)
+        cv.imshow('blur_whites', blur_whites)
 
 
 
 
     inv = cv.bitwise_not(blur)
+    inv_whites = cv.bitwise_not(blur_whites)
 
     contours, hierarchy = cv.findContours(inv, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    contours_whites, hierarchy_whites = cv.findContours(inv_whites, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     filtered_contours = []
     # cv.drawContours(img_scaled, contours, -1, (0, 255, 0), 3)
     for contour in contours:
-        if 10000 > cv.contourArea(contour) >= 2000:
+        if 10000 > cv.contourArea(contour) >= 500:
             # cv.drawContours(img_scaled, contour, -1, (0, 255, 0), 3)
             filtered_contours.append(contour)
+
+    for contour in contours_whites:
+        if 10000 > cv.contourArea(contour) >= 400:
+            # cv.drawContours(img_scaled, contour, -1, (0, 255, 0), 3)
+            filtered_contours.append(contour)
+
     cv.drawContours(img_scaled, filtered_contours, -1, (0, 255, 0), 3)
 
     cv.imshow('contours', img_scaled)
