@@ -13,7 +13,7 @@ def round_up_to_odd(f):
 
 
 def main():
-    img = cv.imread('projekt/img_003.jpg')
+    img = cv.imread('projekt/img_001.jpg')
     img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
     gray = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
     hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -34,16 +34,18 @@ def main():
     dilations = 0
 
     # in range variables
-    hue_low = 68
-    saturation_low = 11
-    value_low = 177
-    hue_high = 101
-    saturation_high = 30
-    value_high = 186
+    # hue_low = 68
+    hue_low = 0
+    saturation_low = 0
+    value_low = 169
+    hue_high = 122
+    saturation_high = 36
+    value_high = 194
 
 
 
     kernel = np.ones((3, 3), np.uint8)
+    se = np.ones((7, 7), dtype='uint8')
 
     # cv.createTrackbar('sigmaColor', 'img', sigmaColor, 255, empty_callback)
     # cv.createTrackbar('sigmaSpace', 'img', sigmaSpace, 255, empty_callback)
@@ -94,6 +96,7 @@ def main():
         erosion = cv.erode(dilation, kernel, iterations=erosions)
 
         blur = cv.medianBlur(erosion, 3)
+        blur = cv.morphologyEx(blur, cv.MORPH_OPEN, se)
 
         # white threshold morphology
         # dilation_whites = cv.dilate(thresh_whites, kernel, iterations=dilations)
@@ -111,6 +114,7 @@ def main():
             break
 
         cv.imshow('img', blur)
+        cv.imshow('blur', blur)
         cv.imshow('thresh_color', thresh_color)
         # cv.imshow('thresh_whites', thresh_whites)
         cv.imshow('thresh_blues', thresh_blues)
@@ -118,10 +122,18 @@ def main():
         cv.imshow('whites_to_watch', mask1)
 
 
+
+
     inv = cv.bitwise_not(blur)
 
     contours, hierarchy = cv.findContours(inv, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    cv.drawContours(img_scaled, contours, -1, (0, 255, 0), 3)
+    filtered_contours = []
+    # cv.drawContours(img_scaled, contours, -1, (0, 255, 0), 3)
+    for contour in contours:
+        if 10000 > cv.contourArea(contour) >= 2000:
+            # cv.drawContours(img_scaled, contour, -1, (0, 255, 0), 3)
+            filtered_contours.append(contour)
+    cv.drawContours(img_scaled, filtered_contours, -1, (0, 255, 0), 3)
 
     cv.imshow('contours', img_scaled)
     cv.waitKey(0)
