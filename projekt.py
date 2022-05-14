@@ -11,9 +11,26 @@ def round_up_to_odd(f):
     f = int(np.ceil(f))
     return f + 1 if f % 2 == 0 else f
 
+def fillhole(input_image):
+    im_flood_fill = input_image.copy()
+    h, w = input_image.shape[:2]
+    mask = np.zeros((h + 2, w + 2), np.uint8)
+    im_flood_fill = im_flood_fill.astype("uint8")
+    cv.floodFill(im_flood_fill, mask, (0, 0), 255)
+    im_flood_fill_inv = cv.bitwise_not(im_flood_fill)
+    img_out = input_image | im_flood_fill_inv
+    return img_out
+
+
+def sharpen_image(input_image):
+    kernel = np.array([[0, -1, 0],
+                       [-1, 5, -1],
+                       [0, -1, 0]])
+    image_sharp = cv.filter2D(src=input_image, ddepth=-1, kernel=kernel)
+    return image_sharp
 
 def main():
-    img = cv.imread('projekt/img_003.jpg')
+    img = cv.imread('projekt/img_002.jpg')
     img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
     gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
     hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -39,16 +56,22 @@ def main():
     gray = cv.cvtColor(result, cv.COLOR_BGR2GRAY)
     gray_norm = cv.cvtColor(result_norm, cv.COLOR_BGR2GRAY)
 
-
+    h, w = result_norm.shape[:2]
+    flood_mask = np.zeros((h + 2, w + 2), np.uint8)
 
     threshold = 242
     erosions = 0
-    dilations = 0
+    dilations = 1
     kernel = np.ones((3, 3), np.uint8)
+    kernel_prewitt_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32)
+    kernel_sobel_y = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]], dtype=np.float32) / 4.0
+
     C = 0
     block_size = 11
-    a = 138
-    b = 130
+    # a = 138
+    a = 249
+    # b = 130
+    b = 88
 
     cv.createTrackbar('threshold', 'img', threshold, 255, empty_callback)
     cv.createTrackbar('erosion', 'img', erosions, 10, empty_callback)
@@ -67,7 +90,11 @@ def main():
         a = cv.getTrackbarPos('a', 'edges')
         b = cv.getTrackbarPos('b', 'edges')
 
+
         edges = cv.Canny(result_norm[:,:,0], a, b)
+        # edges = cv.Canny(hsv[:,:,2], a, b)
+        # filtered_y = cv.filter2D(result_norm[:,:,0], ddepth=-1, kernel=kernel_sobel_y)
+        # filtered_y = cv.Canny(filtered_y, 37, 87)
 
         ret, thresh = cv.threshold(gray_norm, threshold, 255, cv.THRESH_BINARY)
         adaptive_threshold = cv.adaptiveThreshold(gray_norm, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY,
@@ -75,16 +102,27 @@ def main():
 
         edges = cv.erode(edges, kernel, iterations=erosions)
         edges = cv.dilate(edges, kernel, iterations=dilations)
-        edges = cv.GaussianBlur(edges, (5, 5), 0)
+        # edges = cv.GaussianBlur(edges, (5, 5), 0)
 
+        # edges = cv.bitwise_or(edges, filtered_y)
 
         # erosion = cv.medianBlur(erosion, 5)
-        edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, np.ones((9, 9), np.uint8))
+        edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, np.ones((21, 21), np.uint8))
 
+        # cv.floodFill(edges, flood_mask, (0, 0), 255)
 
+        # edges_inv = cv.bitwise_not(edges)
+
+        # edges_fill = edges | edges_inv
+        edges_fill = fillhole(edges)
 
         cv.imshow('img', result)
         cv.imshow('edges', edges)
+        # cv.imshow('edges_inv', edges_inv)
+        cv.imshow('edges_fill', edges_fill)
+        cv.imshow('hsv', hsv[:,:,2])
+        # cv.imshow('prewitt', filtered_y)
+
 
         key_code = cv.waitKey(10)
         if key_code == 27:
@@ -93,11 +131,13 @@ def main():
 
     # inv = cv.bitwise_not(erosion)
 
-    contours, hierarchy = cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+
+    cv.fillPoly(img_scaled, contours, (255, 255, 255))
     # cv.drawContours(img_scaled, contours, -1, (0, 255, 0), 3)
     filtered_contours = []
     for contour in contours:
-        if 10000 > cv.contourArea(contour) >= 500:
+        if 20000 > cv.contourArea(contour) >= 500:
             # cv.drawContours(img_scaled, contour, -1, (0, 255, 0), 3)
             filtered_contours.append(contour)
 
