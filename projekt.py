@@ -30,7 +30,7 @@ def sharpen_image(input_image):
     return image_sharp
 
 def main():
-    img = cv.imread('projekt/img_002.jpg')
+    img = cv.imread('projekt/img_001.jpg')
     img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
     gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
     hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -44,7 +44,7 @@ def main():
     result_norm_planes = []
     for plane in rgb_planes:
         dilated_img = cv.dilate(plane, np.ones((5, 5), np.uint8))
-        bg_img = cv.medianBlur(dilated_img, 3)
+        bg_img = cv.medianBlur(dilated_img, 5)
         diff_img = 255 - cv.absdiff(plane, bg_img)
         norm_img = cv.normalize(diff_img, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_8UC1)
         result_planes.append(diff_img)
@@ -56,22 +56,22 @@ def main():
     gray = cv.cvtColor(result, cv.COLOR_BGR2GRAY)
     gray_norm = cv.cvtColor(result_norm, cv.COLOR_BGR2GRAY)
 
-    h, w = result_norm.shape[:2]
-    flood_mask = np.zeros((h + 2, w + 2), np.uint8)
 
-    threshold = 242
+    threshold = 8 #30
     erosions = 0
-    dilations = 1
+    dilations = 2
     kernel = np.ones((3, 3), np.uint8)
-    kernel_prewitt_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32)
+    kernel_prewitt_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32) / 3.0
+    kernel_prewitt_x = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]], dtype=np.float32) / 3.0
     kernel_sobel_y = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]], dtype=np.float32) / 4.0
+    kernel_sobel_x = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]], dtype=np.float32) / 4.0
 
-    C = 0
-    block_size = 11
-    # a = 138
-    a = 249
+    C = 19
+    block_size = 72
+    a = 138
+    # a = 36
     # b = 130
-    b = 88
+    b = 37
 
     cv.createTrackbar('threshold', 'img', threshold, 255, empty_callback)
     cv.createTrackbar('erosion', 'img', erosions, 10, empty_callback)
@@ -92,36 +92,65 @@ def main():
 
 
         edges = cv.Canny(result_norm[:,:,0], a, b)
+        edges_2 = cv.Canny(result_norm[:,:,2], a, b)
+        edges_3 = cv.Canny(result[:,:,2], a, b)
         # edges = cv.Canny(hsv[:,:,2], a, b)
-        # filtered_y = cv.filter2D(result_norm[:,:,0], ddepth=-1, kernel=kernel_sobel_y)
+        filtered_y = cv.filter2D(img_scaled[:,:,0], ddepth=-1, kernel=kernel_sobel_y)
+        filtered_x = cv.filter2D(img_scaled[:,:,0], ddepth=-1, kernel=kernel_sobel_x)
+
+        filtered_xy = cv.bitwise_or(filtered_x, filtered_y)
+
+        ret, thresh_filtered = cv.threshold(filtered_xy, threshold, 255, cv.THRESH_BINARY)
+        filtered_xy = cv.dilate(thresh_filtered, kernel, iterations=dilations)
         # filtered_y = cv.Canny(filtered_y, 37, 87)
 
-        ret, thresh = cv.threshold(gray_norm, threshold, 255, cv.THRESH_BINARY)
-        adaptive_threshold = cv.adaptiveThreshold(gray_norm, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY,
+        # ret, thresh = cv.threshold(gray_norm, threshold, 255, cv.THRESH_BINARY)
+        adaptive_threshold = cv.adaptiveThreshold(result_norm[:,:,0], 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY,
                                              round_up_to_odd(block_size), C)
 
+        # adaptive_threshold = cv.dilate(adaptive_threshold, kernel, iterations=1)
+        adaptive_threshold = cv.erode(adaptive_threshold, kernel, iterations=3)
+        adaptive_threshold = cv.bitwise_not(adaptive_threshold)
+
+        # cv.imshow('adaptive', adaptive_threshold)
+        # adaptive_threshold = cv.medianBlur(adaptive_threshold, 21)
+
+        edges = cv.bitwise_or(edges, filtered_xy)
+        edges = cv.bitwise_or(edges, adaptive_threshold)
+
+
         edges = cv.erode(edges, kernel, iterations=erosions)
-        edges = cv.dilate(edges, kernel, iterations=dilations)
+        # edges = cv.dilate(edges, kernel, iterations=dilations)
+        # edges_2 = cv.erode(edges_2, kernel, iterations=erosions)
+        # edges_2 = cv.dilate(edges_2, kernel, iterations=dilations)
+        # edges_3 = cv.erode(edges_3, kernel, iterations=erosions)
+        # edges_3 = cv.dilate(edges_3, kernel, iterations=dilations)
+
         # edges = cv.GaussianBlur(edges, (5, 5), 0)
 
         # edges = cv.bitwise_or(edges, filtered_y)
 
         # erosion = cv.medianBlur(erosion, 5)
-        edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, np.ones((21, 21), np.uint8))
+        edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, np.ones((7, 7), np.uint8))
+        # edges_2 = cv.morphologyEx(edges_2, cv.MORPH_CLOSE, np.ones((21, 21), np.uint8))
+        # edges_3 = cv.morphologyEx(edges_3, cv.MORPH_CLOSE, np.ones((21, 21), np.uint8))
 
-        # cv.floodFill(edges, flood_mask, (0, 0), 255)
 
-        # edges_inv = cv.bitwise_not(edges)
 
-        # edges_fill = edges | edges_inv
+        # edges = cv.bitwise_or(edges, edges_2)
+        # edges = cv.bitwise_or(edges, edges_3)
+
+
+
         edges_fill = fillhole(edges)
+
 
         cv.imshow('img', result)
         cv.imshow('edges', edges)
         # cv.imshow('edges_inv', edges_inv)
         cv.imshow('edges_fill', edges_fill)
-        cv.imshow('hsv', hsv[:,:,2])
-        # cv.imshow('prewitt', filtered_y)
+        # cv.imshow('hsv', hsv[:,:,2])
+        # cv.imshow('sobel', filtered_xy)
 
 
         key_code = cv.waitKey(10)
