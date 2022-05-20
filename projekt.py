@@ -30,7 +30,7 @@ def sharpen_image(input_image):
     return image_sharp
 
 def main():
-    img = cv.imread('projekt/img_001.jpg')
+    img = cv.imread('projekt/img_010.jpg')
     img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
     gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
     hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -59,7 +59,7 @@ def main():
 
     threshold = 8 #30
     erosions = 0
-    dilations = 2
+    dilations = 0
     kernel = np.ones((3, 3), np.uint8)
     kernel_prewitt_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32) / 3.0
     kernel_prewitt_x = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]], dtype=np.float32) / 3.0
@@ -68,10 +68,10 @@ def main():
 
     C = 19
     block_size = 72
-    a = 138
-    # a = 36
-    # b = 130
-    b = 37
+    # a = 138
+    a = 255
+    b = 255
+    # b = 37
 
     cv.createTrackbar('threshold', 'img', threshold, 255, empty_callback)
     cv.createTrackbar('erosion', 'img', erosions, 10, empty_callback)
@@ -162,16 +162,36 @@ def main():
 
     contours, hierarchy = cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
-    cv.fillPoly(img_scaled, contours, (255, 255, 255))
+    # cv.fillPoly(img_scaled, contours, (255, 255, 255))
     # cv.drawContours(img_scaled, contours, -1, (0, 255, 0), 3)
     filtered_contours = []
     for contour in contours:
-        if 20000 > cv.contourArea(contour) >= 500:
+        if 20000 > cv.contourArea(contour) >= 5000:
             # cv.drawContours(img_scaled, contour, -1, (0, 255, 0), 3)
             filtered_contours.append(contour)
 
     cv.drawContours(img_scaled, filtered_contours, -1, (0, 255, 0), 3)
     cv.imshow('contours', img_scaled)
+
+    mask_1_color = cv.imread('klocki/1_mask.jpg')
+    mask_1 = cv.cvtColor(mask_1_color, cv.COLOR_BGR2GRAY)
+    mask_1 = cv.medianBlur(mask_1, 7)
+    # ret, mask_1 = cv.threshold(mask_1, 5, 255, cv.THRESH_BINARY)
+
+
+    contours_mask, hierarchy_mask = cv.findContours(mask_1, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    cv.fillPoly(mask_1_color, contours_mask, (255, 255, 0))
+
+    cv.imshow('mask_1', mask_1_color)
+    cv.waitKey(0)
+
+    print(len(filtered_contours))
+    print(len(contours_mask))
+    for idx, contour in enumerate(filtered_contours):
+        ret = cv.matchShapes(contour, contours_mask[0], 3, 0.0)
+        if ret < 0.3:
+            print(idx, ret)
+
 
     cv.waitKey(0)
     cv.destroyAllWindows()
