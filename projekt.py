@@ -33,6 +33,9 @@ def match_contours(filtered_contours, mask_color):
     mask = cv.cvtColor(mask_color, cv.COLOR_BGR2GRAY)
     mask = cv.medianBlur(mask, 7)
 
+    result = 0
+    data = []
+
     contours_mask, hierarchy_mask = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
     cv.fillPoly(mask_color, contours_mask, (255, 255, 0))
 
@@ -45,6 +48,9 @@ def match_contours(filtered_contours, mask_color):
         ret = cv.matchShapes(contour, contours_mask[0], 3, 0.0)
         if ret < 0.2:
             print(idx, ret)
+            result += 1
+            data.append((idx, ret))
+    return result, data
 
 
 def main():
@@ -52,6 +58,8 @@ def main():
     img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
     gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
     hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
+
+    results = [0]*11
 
     cv.namedWindow('img')
     cv.namedWindow('edges')
@@ -195,31 +203,51 @@ def main():
     # 8x2 block
     mask_1_color = cv.imread('klocki/1_mask.jpg')
     print('8x2 blocks: \n')
-    match_contours(filtered_contours, mask_1_color)
+    results[0], data_1 = match_contours(filtered_contours, mask_1_color)
 
     # tetris block
     mask_7_color = cv.imread('klocki/7_mask.jpg')
     print('tetris blocks: \n')
-    match_contours(filtered_contours, mask_7_color)
+    results[1], data_2 = match_contours(filtered_contours, mask_7_color)
 
     # l block
     # mask_2_color = cv.imread('klocki/2_mask.jpg')
     mask_3_color = cv.imread('klocki/3_mask.jpg')
     print('l blocks: \n')
     # match_contours(filtered_contours, mask_2_color)
-    match_contours(filtered_contours, mask_3_color)
+    results[2], data_3 = match_contours(filtered_contours, mask_3_color)
 
     # z and s blocks:
     # mask_4_color = cv.imread('klocki/4_mask.jpg')
     mask_5_color = cv.imread('klocki/5_mask.jpg')
     print('z and s blocks: \n')
     # match_contours(filtered_contours, mask_4_color)
-    match_contours(filtered_contours, mask_5_color)
+    results[4], data_5 = match_contours(filtered_contours, mask_5_color)
 
     # square blocks:
-    mask_6_color = cv.imread('klocki/6_mask.jpg')
-    print('square blocks: \n')
-    match_contours(filtered_contours, mask_6_color)
+    # mask_6_color = cv.imread('klocki/6_mask.jpg')
+    # print('square blocks: \n')
+    # results[3] = match_contours(filtered_contours, mask_6_color)
+
+
+    for idx, x in enumerate(data_5):
+        for idy, y in enumerate(data_3):
+            if x is not None and y is not None:
+                if x[0] == y[0]:
+                    if x[1] < y[1]:
+                        data_3[idy] = None
+                        continue
+                    if y[1] < x[1]:
+                        data_5[idx] = None
+    data_5 = list(filter(None, data_5))
+    data_3 = list(filter(None, data_3))
+
+    results[4] = len(data_5)
+    results[2] = len(data_3)
+
+    print(data_5)
+
+    print('results: ', results)
 
     cv.waitKey(0)
     cv.destroyAllWindows()
