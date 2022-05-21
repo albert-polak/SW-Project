@@ -46,15 +46,28 @@ def match_contours(filtered_contours, mask_color):
     # print(len(contours_mask))
     for idx, contour in enumerate(filtered_contours):
         ret = cv.matchShapes(contour, contours_mask[0], 3, 0.0)
-        if ret < 0.2:
+        if ret < 0.25:
             print(idx, ret)
             result += 1
             data.append((idx, ret))
     return result, data
 
+def choose_lower(data_1, data_2):
+    for idx, x in enumerate(data_1):
+        for idy, y in enumerate(data_2):
+            if x is not None and y is not None:
+                if x[0] == y[0]:
+                    if x[1] < y[1]:
+                        data_2[idy] = None
+                        continue
+                    if y[1] < x[1]:
+                        data_1[idx] = None
+    data_1[:] = list(filter(None, data_1))
+    data_2[:] = list(filter(None, data_2))
+
 
 def main():
-    img = cv.imread('projekt/img_003.jpg')
+    img = cv.imread('projekt/img_001.jpg')
     img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
     gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
     hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -85,7 +98,7 @@ def main():
 
     threshold = 8 #30
     erosions = 0
-    dilations = 0
+    dilations = 1
     kernel = np.ones((3, 3), np.uint8)
     kernel_prewitt_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32) / 3.0
     kernel_prewitt_x = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]], dtype=np.float32) / 3.0
@@ -181,15 +194,14 @@ def main():
 
         key_code = cv.waitKey(10)
         if key_code == 27:
-            # escape key pressed
             break
 
     # inv = cv.bitwise_not(erosion)
 
     contours, hierarchy = cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
-    # cv.fillPoly(img_scaled, contours, (255, 255, 255))
-    # cv.drawContours(img_scaled, contours, -1, (0, 255, 0), 3)
+
+
     filtered_contours = []
     for contour in contours:
         if 20000 > cv.contourArea(contour) >= 5000:
@@ -229,23 +241,15 @@ def main():
     # print('square blocks: \n')
     # results[3] = match_contours(filtered_contours, mask_6_color)
 
+    choose_lower(data_5, data_3)
+    choose_lower(data_5, data_1)
 
-    for idx, x in enumerate(data_5):
-        for idy, y in enumerate(data_3):
-            if x is not None and y is not None:
-                if x[0] == y[0]:
-                    if x[1] < y[1]:
-                        data_3[idy] = None
-                        continue
-                    if y[1] < x[1]:
-                        data_5[idx] = None
-    data_5 = list(filter(None, data_5))
-    data_3 = list(filter(None, data_3))
 
     results[4] = len(data_5)
     results[2] = len(data_3)
+    results[0] = len(data_1)
 
-    print(data_5)
+
 
     print('results: ', results)
 
