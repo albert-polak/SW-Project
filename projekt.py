@@ -22,15 +22,33 @@ def fillhole(input_image):
     return img_out
 
 
-def sharpen_image(input_image):
-    kernel = np.array([[0, -1, 0],
-                       [-1, 5, -1],
-                       [0, -1, 0]])
-    image_sharp = cv.filter2D(src=input_image, ddepth=-1, kernel=kernel)
-    return image_sharp
+# def sharpen_image(input_image):
+#     kernel = np.array([[0, -1, 0],
+#                        [-1, 5, -1],
+#                        [0, -1, 0]])
+#     image_sharp = cv.filter2D(src=input_image, ddepth=-1, kernel=kernel)
+#     return image_sharp
+
+def match_contours(filtered_contours, mask_color):
+    mask = cv.cvtColor(mask_color, cv.COLOR_BGR2GRAY)
+    mask = cv.medianBlur(mask, 7)
+
+    contours_mask, hierarchy_mask = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    cv.fillPoly(mask_color, contours_mask, (255, 255, 0))
+
+    cv.imshow('mask_7', mask_color)
+    cv.waitKey(0)
+
+    # print(len(filtered_contours))
+    # print(len(contours_mask))
+    for idx, contour in enumerate(filtered_contours):
+        ret = cv.matchShapes(contour, contours_mask[0], 3, 0.0)
+        if ret < 0.2:
+            print(idx, ret)
+
 
 def main():
-    img = cv.imread('projekt/img_010.jpg')
+    img = cv.imread('projekt/img_003.jpg')
     img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
     gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
     hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -173,25 +191,35 @@ def main():
     cv.drawContours(img_scaled, filtered_contours, -1, (0, 255, 0), 3)
     cv.imshow('contours', img_scaled)
 
+
+    # 8x2 block
     mask_1_color = cv.imread('klocki/1_mask.jpg')
-    mask_1 = cv.cvtColor(mask_1_color, cv.COLOR_BGR2GRAY)
-    mask_1 = cv.medianBlur(mask_1, 7)
-    # ret, mask_1 = cv.threshold(mask_1, 5, 255, cv.THRESH_BINARY)
+    print('8x2 blocks: \n')
+    match_contours(filtered_contours, mask_1_color)
 
+    # tetris block
+    mask_7_color = cv.imread('klocki/7_mask.jpg')
+    print('tetris blocks: \n')
+    match_contours(filtered_contours, mask_7_color)
 
-    contours_mask, hierarchy_mask = cv.findContours(mask_1, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
-    cv.fillPoly(mask_1_color, contours_mask, (255, 255, 0))
+    # l block
+    # mask_2_color = cv.imread('klocki/2_mask.jpg')
+    mask_3_color = cv.imread('klocki/3_mask.jpg')
+    print('l blocks: \n')
+    # match_contours(filtered_contours, mask_2_color)
+    match_contours(filtered_contours, mask_3_color)
 
-    cv.imshow('mask_1', mask_1_color)
-    cv.waitKey(0)
+    # z and s blocks:
+    # mask_4_color = cv.imread('klocki/4_mask.jpg')
+    mask_5_color = cv.imread('klocki/5_mask.jpg')
+    print('z and s blocks: \n')
+    # match_contours(filtered_contours, mask_4_color)
+    match_contours(filtered_contours, mask_5_color)
 
-    print(len(filtered_contours))
-    print(len(contours_mask))
-    for idx, contour in enumerate(filtered_contours):
-        ret = cv.matchShapes(contour, contours_mask[0], 3, 0.0)
-        if ret < 0.3:
-            print(idx, ret)
-
+    # square blocks:
+    mask_6_color = cv.imread('klocki/6_mask.jpg')
+    print('square blocks: \n')
+    match_contours(filtered_contours, mask_6_color)
 
     cv.waitKey(0)
     cv.destroyAllWindows()
