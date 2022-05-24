@@ -6,7 +6,7 @@ def emptycallback(x):
 
 
 def make_mask():
-    im_number = 1
+    im_number = 6
 
     img = cv.imread(f'klocki/{im_number}.jpg')
 
@@ -15,18 +15,20 @@ def make_mask():
     cv.namedWindow('img')
 
     threshold = 88
-
+    dilations = 0
     kernel = np.ones((3, 3), np.uint8)
 
     cv.createTrackbar('threshold', 'img', threshold, 255, emptycallback)
+    cv.createTrackbar('dilation', 'img', dilations, 255, emptycallback)
 
     while True:
         threshold = cv.getTrackbarPos('threshold', 'img')
-
+        dilations = cv.getTrackbarPos('dilation', 'img')
         ret, thresh = cv.threshold(gray, threshold, 255, cv.THRESH_BINARY_INV)
         thresh = cv.medianBlur(thresh, 5)
-        # thresh = cv.dilate(thresh, kernel, iterations=1)
+        thresh = cv.dilate(thresh, kernel, iterations=dilations)
         thresh = cv.morphologyEx(thresh, cv.MORPH_CLOSE, np.ones((7, 7), np.uint8))
+
 
         key_code = cv.waitKey(10)
         if key_code == 27:

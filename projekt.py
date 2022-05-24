@@ -41,6 +41,7 @@ def match_contours(filtered_contours, mask_color):
 
     cv.imshow('mask_7', mask_color)
     cv.waitKey(0)
+    print(len(contours_mask))
 
     # print(len(filtered_contours))
     # print(len(contours_mask))
@@ -66,8 +67,9 @@ def choose_lower(data_1, data_2):
     data_2[:] = list(filter(None, data_2))
 
 
+
 def main():
-    img = cv.imread('projekt/img_001.jpg')
+    img = cv.imread('projekt/img_002.jpg')
     img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
     gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
     hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -76,7 +78,33 @@ def main():
 
     cv.namedWindow('img')
     cv.namedWindow('edges')
+    cv.namedWindow('hsv')
 
+    # red colour
+    hsv_red1 = cv.inRange(hsv, (0, 100, 20), (10, 255, 255))
+    hsv_red2 = cv.inRange(hsv, (160, 100, 20), (179, 255, 255))
+    hsv_red = cv.bitwise_or(hsv_red1, hsv_red2)
+
+    # blue colour
+    hsv_blue = cv.inRange(hsv, (100, 100, 20), (135, 255, 255))
+
+    # green colour
+    hsv_green = cv.inRange(hsv, (35, 80, 20), (85, 255, 255))
+
+    # hsv yellow
+    hsv_yellow = cv.inRange(hsv, (20, 100, 20), (35, 255, 255))
+
+    # hsv white
+    hsv_white = cv.inRange(hsv, (20, 0, 168), (200, 91, 204))
+
+    hsv_all = cv.bitwise_or(hsv_blue, hsv_red)
+    hsv_all = cv.bitwise_or(hsv_all, hsv_green)
+    hsv_all = cv.bitwise_or(hsv_all, hsv_yellow)
+    hsv_all = cv.bitwise_or(hsv_all, hsv_white)
+
+
+    # shadow removal
+    # https://stackoverflow.com/questions/44752240/how-to-remove-shadow-from-scanned-images-using-opencv
     rgb_planes = cv.split(img_scaled)
 
     result_planes = []
@@ -96,21 +124,38 @@ def main():
     gray_norm = cv.cvtColor(result_norm, cv.COLOR_BGR2GRAY)
 
 
-    threshold = 8 #30
+    # threshold = 8 #30
+    threshold = 255
     erosions = 0
-    dilations = 1
+    dilations = 0
     kernel = np.ones((3, 3), np.uint8)
     kernel_prewitt_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32) / 3.0
     kernel_prewitt_x = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]], dtype=np.float32) / 3.0
     kernel_sobel_y = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]], dtype=np.float32) / 4.0
     kernel_sobel_x = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]], dtype=np.float32) / 4.0
 
-    C = 19
-    block_size = 72
+    # C = 19
+    C = 30
+    block_size = 26 #72
     # a = 138
-    a = 255
-    b = 255
+    a = 100
+    b = 148
     # b = 37
+
+    hue_low = 68
+    saturation_low = 11
+    value_low = 177
+    hue_high = 101
+    saturation_high = 30
+    value_high = 186
+
+    cv.createTrackbar('hue_low', 'hsv', hue_low, 255, empty_callback)
+    cv.createTrackbar('saturation_low', 'hsv', saturation_low, 255, empty_callback)
+    cv.createTrackbar('value_low', 'hsv', value_low, 255, empty_callback)
+    cv.createTrackbar('hue_high', 'hsv', hue_high, 255, empty_callback)
+    cv.createTrackbar('saturation_high', 'hsv', saturation_high, 255, empty_callback)
+    cv.createTrackbar('value_high', 'hsv', value_high, 255, empty_callback)
+
 
     cv.createTrackbar('threshold', 'img', threshold, 255, empty_callback)
     cv.createTrackbar('erosion', 'img', erosions, 10, empty_callback)
@@ -129,13 +174,21 @@ def main():
         a = cv.getTrackbarPos('a', 'edges')
         b = cv.getTrackbarPos('b', 'edges')
 
+        hue_low = cv.getTrackbarPos('hue_low', 'hsv')
+        saturation_low = cv.getTrackbarPos('saturation_low', 'hsv')
+        value_low = cv.getTrackbarPos('value_low', 'hsv')
+        hue_high = cv.getTrackbarPos('hue_high', 'hsv')
+        saturation_high = cv.getTrackbarPos('saturation_high', 'hsv')
+        value_high = cv.getTrackbarPos('value_high', 'hsv')
+
+        mask1 = cv.inRange(hsv, (hue_low, saturation_low, value_low), (hue_high, saturation_high, value_high))
 
         edges = cv.Canny(result_norm[:,:,0], a, b)
         edges_2 = cv.Canny(result_norm[:,:,2], a, b)
         edges_3 = cv.Canny(result[:,:,2], a, b)
         # edges = cv.Canny(hsv[:,:,2], a, b)
-        filtered_y = cv.filter2D(img_scaled[:,:,0], ddepth=-1, kernel=kernel_sobel_y)
-        filtered_x = cv.filter2D(img_scaled[:,:,0], ddepth=-1, kernel=kernel_sobel_x)
+        filtered_y = cv.filter2D(img_scaled[:,:,0], ddepth=-1, kernel=kernel_prewitt_y)
+        filtered_x = cv.filter2D(img_scaled[:,:,0], ddepth=-1, kernel=kernel_prewitt_x)
 
         filtered_xy = cv.bitwise_or(filtered_x, filtered_y)
 
@@ -188,7 +241,8 @@ def main():
         cv.imshow('edges', edges)
         # cv.imshow('edges_inv', edges_inv)
         cv.imshow('edges_fill', edges_fill)
-        # cv.imshow('hsv', hsv[:,:,2])
+        cv.imshow('hsv', mask1)
+        cv.imshow('hsv_to_watch', mask1)
         # cv.imshow('sobel', filtered_xy)
 
 
@@ -201,54 +255,79 @@ def main():
     contours, hierarchy = cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
 
-
+    bounding_boxes = []
     filtered_contours = []
     for contour in contours:
-        if 20000 > cv.contourArea(contour) >= 5000:
+        if 20000 > cv.contourArea(contour) >= 3500:
             # cv.drawContours(img_scaled, contour, -1, (0, 255, 0), 3)
             filtered_contours.append(contour)
-
+            x, y, w, h = cv.boundingRect(contour)
+            bounding_boxes.append((x, y, w, h))
+            cv.rectangle(img_scaled, (x, y), (x+w, y+h), (0, 255, 0), 2)
     cv.drawContours(img_scaled, filtered_contours, -1, (0, 255, 0), 3)
     cv.imshow('contours', img_scaled)
 
 
     # 8x2 block
     mask_1_color = cv.imread('klocki/1_mask.jpg')
+    mask_1_color_scaled = cv.resize(mask_1_color, fx=0.25, fy=0.25, dsize=None)
     print('8x2 blocks: \n')
-    results[0], data_1 = match_contours(filtered_contours, mask_1_color)
+    results[0], data_1 = match_contours(filtered_contours, mask_1_color_scaled)
 
     # tetris block
     mask_7_color = cv.imread('klocki/7_mask.jpg')
+    mask_7_color_scaled = cv.resize(mask_7_color, fx=0.25, fy=0.25, dsize=None)
     print('tetris blocks: \n')
-    results[1], data_2 = match_contours(filtered_contours, mask_7_color)
+    results[1], data_2 = match_contours(filtered_contours, mask_7_color_scaled)
 
     # l block
     # mask_2_color = cv.imread('klocki/2_mask.jpg')
     mask_3_color = cv.imread('klocki/3_mask.jpg')
+    mask_3_color_scaled = cv.resize(mask_3_color, fx=0.25, fy=0.25, dsize=None)
     print('l blocks: \n')
     # match_contours(filtered_contours, mask_2_color)
-    results[2], data_3 = match_contours(filtered_contours, mask_3_color)
+    results[2], data_3 = match_contours(filtered_contours, mask_3_color_scaled)
+
+
+    # square blocks:
+    mask_6_color = cv.imread('klocki/6_mask.jpg')
+    mask_6_color_scaled = cv.resize(mask_6_color, fx=0.25, fy=0.25, dsize=None)
+    mask_6_color_scaled = cv.rotate(mask_6_color_scaled, cv.ROTATE_90_COUNTERCLOCKWISE)
+    print('square blocks: \n')
+    results[3], data_4 = match_contours(filtered_contours, mask_6_color_scaled)
 
     # z and s blocks:
     # mask_4_color = cv.imread('klocki/4_mask.jpg')
     mask_5_color = cv.imread('klocki/5_mask.jpg')
+    mask_5_color_scaled = cv.resize(mask_5_color, fx=0.25, fy=0.25, dsize=None)
     print('z and s blocks: \n')
     # match_contours(filtered_contours, mask_4_color)
-    results[4], data_5 = match_contours(filtered_contours, mask_5_color)
+    results[4], data_5 = match_contours(filtered_contours, mask_5_color_scaled)
 
-    # square blocks:
-    # mask_6_color = cv.imread('klocki/6_mask.jpg')
-    # print('square blocks: \n')
-    # results[3] = match_contours(filtered_contours, mask_6_color)
 
     choose_lower(data_5, data_3)
     choose_lower(data_5, data_1)
+    choose_lower(data_5, data_4)
+    choose_lower(data_1, data_3)
+    choose_lower(data_1, data_4)
+    choose_lower(data_5, data_2)
+    choose_lower(data_4, data_2)
+    choose_lower(data_4, data_1)
+    choose_lower(data_4, data_3)
+    choose_lower(data_3, data_1)
+    choose_lower(data_3, data_2)
+    choose_lower(data_2, data_1)
 
-
-    results[4] = len(data_5)
-    results[2] = len(data_3)
     results[0] = len(data_1)
+    results[1] = len(data_2)
+    results[2] = len(data_3)
+    results[3] = len(data_4)
+    results[4] = len(data_5)
 
+
+
+
+    cv.imshow('hsv_x', hsv_all)
 
 
     print('results: ', results)
