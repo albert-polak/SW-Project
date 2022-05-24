@@ -69,10 +69,11 @@ def choose_lower(data_1, data_2):
 
 
 def main():
-    img = cv.imread('projekt/img_002.jpg')
+    img = cv.imread('projekt/img_001.jpg')
     img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
     gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
     hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
+    img_scaled_pure = img_scaled.copy()
 
     results = [0]*11
 
@@ -80,22 +81,30 @@ def main():
     cv.namedWindow('edges')
     cv.namedWindow('hsv')
 
+    hsv_colors = []
+
     # red colour
     hsv_red1 = cv.inRange(hsv, (0, 100, 20), (10, 255, 255))
     hsv_red2 = cv.inRange(hsv, (160, 100, 20), (179, 255, 255))
     hsv_red = cv.bitwise_or(hsv_red1, hsv_red2)
 
+    hsv_colors.append((hsv_red, 5))
+
     # blue colour
     hsv_blue = cv.inRange(hsv, (100, 100, 20), (135, 255, 255))
+    hsv_colors.append((hsv_blue, 7))
 
     # green colour
     hsv_green = cv.inRange(hsv, (35, 80, 20), (85, 255, 255))
+    hsv_colors.append((hsv_green, 6))
 
     # hsv yellow
     hsv_yellow = cv.inRange(hsv, (20, 100, 20), (35, 255, 255))
+    hsv_colors.append((hsv_yellow, 9))
 
     # hsv white
     hsv_white = cv.inRange(hsv, (20, 0, 168), (200, 91, 204))
+    hsv_colors.append((hsv_white, 8))
 
     hsv_all = cv.bitwise_or(hsv_blue, hsv_red)
     hsv_all = cv.bitwise_or(hsv_all, hsv_green)
@@ -325,9 +334,31 @@ def main():
     results[4] = len(data_5)
 
 
+    for bb in bounding_boxes:
 
+        tmp = img_scaled_pure[bb[1]:bb[1]+bb[3], bb[0]:bb[0]+bb[2], :]
+
+        hsvs = []
+        cv.imshow('tmp', tmp)
+        for hsv in hsv_colors:
+            temp_color = cv.bitwise_and(tmp, tmp, mask=cv.erode(hsv[0][bb[1]:bb[1]+bb[3], bb[0]:bb[0]+bb[2]], np.ones((3, 3)), iterations=3))
+            # cv.imshow('temp_color', temp_color)
+            # cv.imshow('hsv_colors', cv.erode(hsv[0][bb[1]:bb[1]+bb[3], bb[0]:bb[0]+bb[2]], np.ones((3, 3)), iterations=3))
+            # cv.waitKey(0)
+            if np.sum(temp_color) != 0:
+                hsvs.append(hsv[1])
+        if len(hsvs) != 0:
+            if len(hsvs) == 1:
+                results[hsvs[0]] += 1
+            else:
+                results[10] += 1
+
+        cv.waitKey(0)
+
+    # hsv_all = cv.bitwise_and(img_scaled, img_scaled, mask=hsv_colors[0][0])
 
     cv.imshow('hsv_x', hsv_all)
+
 
 
     print('results: ', results)
