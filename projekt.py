@@ -67,9 +67,22 @@ def choose_lower(data_1, data_2):
     data_2[:] = list(filter(None, data_2))
 
 
+def check_convex(data_1, data_2, filtered_contours):
+    for idx, x in enumerate(data_1):
+        for idy, y in enumerate(data_2):
+            if x is not None and y is not None:
+                if x[0] == y[0]:
+                    if cv.isContourConvex(filtered_contours[x[0]]):
+                        data_2[idy] = None
+                    else:
+                        data_1[idx] = None
+    data_1[:] = list(filter(None, data_1))
+    data_2[:] = list(filter(None, data_2))
+
+
 
 def main():
-    img = cv.imread('projekt/img_001.jpg')
+    img = cv.imread('projekt/img_002.jpg')
     img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
     gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
     hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -273,7 +286,7 @@ def main():
             x, y, w, h = cv.boundingRect(contour)
             bounding_boxes.append((x, y, w, h))
             cv.rectangle(img_scaled, (x, y), (x+w, y+h), (0, 255, 0), 2)
-    cv.drawContours(img_scaled, filtered_contours, -1, (0, 255, 0), 3)
+    cv.drawContours(img_scaled, filtered_contours[6], -1, (0, 255, 0), 3)
     cv.imshow('contours', img_scaled)
 
 
@@ -290,12 +303,19 @@ def main():
     results[1], data_2 = match_contours(filtered_contours, mask_7_color_scaled)
 
     # l block
-    # mask_2_color = cv.imread('klocki/2_mask.jpg')
+    mask_2_color = cv.imread('klocki/2_mask.jpg')
     mask_3_color = cv.imread('klocki/3_mask.jpg')
+    mask_2_color_scaled = cv.resize(mask_2_color, fx=0.25, fy=0.25, dsize=None)
     mask_3_color_scaled = cv.resize(mask_3_color, fx=0.25, fy=0.25, dsize=None)
     print('l blocks: \n')
-    # match_contours(filtered_contours, mask_2_color)
     results[2], data_3 = match_contours(filtered_contours, mask_3_color_scaled)
+    results[2], data_3_2 = match_contours(filtered_contours, mask_2_color_scaled)
+    for idx, x in enumerate(data_3):
+        for idy, y in enumerate(data_3_2):
+            if x[0] == y[0]:
+                if data_3[idx][1] > data_3_2[idy][1]:
+                    data_3[idx] = data_3_2[idy]
+
 
 
     # square blocks:
@@ -306,12 +326,19 @@ def main():
     results[3], data_4 = match_contours(filtered_contours, mask_6_color_scaled)
 
     # z and s blocks:
-    # mask_4_color = cv.imread('klocki/4_mask.jpg')
+    mask_4_color = cv.imread('klocki/4_mask.jpg')
     mask_5_color = cv.imread('klocki/5_mask.jpg')
+    mask_4_color_scaled = cv.resize(mask_4_color, fx=0.25, fy=0.25, dsize=None)
     mask_5_color_scaled = cv.resize(mask_5_color, fx=0.25, fy=0.25, dsize=None)
     print('z and s blocks: \n')
-    # match_contours(filtered_contours, mask_4_color)
+
     results[4], data_5 = match_contours(filtered_contours, mask_5_color_scaled)
+    results[4], data_5_2 = match_contours(filtered_contours, mask_4_color_scaled)
+    for idx, x in enumerate(data_5):
+        for idy, y in enumerate(data_5_2):
+            if x[0] == y[0]:
+                if data_5[idx][1] > data_5_2[idy][1]:
+                    data_5[idx] = data_5_2[idy]
 
 
     choose_lower(data_5, data_3)
@@ -326,6 +353,9 @@ def main():
     choose_lower(data_3, data_1)
     choose_lower(data_3, data_2)
     choose_lower(data_2, data_1)
+    check_convex(data_2, data_4, filtered_contours)
+    check_convex(data_3, data_4, filtered_contours)
+
 
     results[0] = len(data_1)
     results[1] = len(data_2)
@@ -341,9 +371,11 @@ def main():
         hsvs = []
         cv.imshow('tmp', tmp)
         for hsv in hsv_colors:
-            temp_color = cv.bitwise_and(tmp, tmp, mask=cv.erode(hsv[0][bb[1]:bb[1]+bb[3], bb[0]:bb[0]+bb[2]], np.ones((3, 3)), iterations=3))
+            temp_color = cv.bitwise_and(tmp, tmp, mask=cv.erode(hsv[0][bb[1]:bb[1]+bb[3], bb[0]:bb[0]+bb[2]],
+                                                                np.ones((3, 3)), iterations=3))
             # cv.imshow('temp_color', temp_color)
-            # cv.imshow('hsv_colors', cv.erode(hsv[0][bb[1]:bb[1]+bb[3], bb[0]:bb[0]+bb[2]], np.ones((3, 3)), iterations=3))
+            # cv.imshow('hsv_colors', cv.erode(hsv[0][bb[1]:bb[1]+bb[3], bb[0]:bb[0]+bb[2]], np.ones((3, 3)),
+            #                                  iterations=3))
             # cv.waitKey(0)
             if np.sum(temp_color) != 0:
                 hsvs.append(hsv[1])
