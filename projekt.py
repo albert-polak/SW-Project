@@ -82,7 +82,7 @@ def check_convex(data_1, data_2, filtered_contours):
 
 
 def main():
-    img = cv.imread('projekt/img_002.jpg')
+    img = cv.imread('projekt/img_004.jpg')
     img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
     gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
     hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -153,8 +153,8 @@ def main():
     kernel = np.ones((3, 3), np.uint8)
     kernel_prewitt_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32) / 3.0
     kernel_prewitt_x = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]], dtype=np.float32) / 3.0
-    kernel_sobel_y = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]], dtype=np.float32) / 4.0
-    kernel_sobel_x = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]], dtype=np.float32) / 4.0
+    kernel_sobel_y = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]], dtype=np.float32)
+    kernel_sobel_x = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]], dtype=np.float32)
 
     # C = 19
     C = 30
@@ -187,6 +187,8 @@ def main():
     cv.createTrackbar('a', 'edges', a, 255, empty_callback)
     cv.createTrackbar('b', 'edges', b, 255, empty_callback)
 
+    edges = hsv_all
+
     while True:
         threshold = cv.getTrackbarPos('threshold', 'img')
         erosions = cv.getTrackbarPos('erosion', 'img')
@@ -205,67 +207,21 @@ def main():
 
         mask1 = cv.inRange(hsv, (hue_low, saturation_low, value_low), (hue_high, saturation_high, value_high))
 
-        edges = cv.Canny(result_norm[:,:,0], a, b)
-        edges_2 = cv.Canny(result_norm[:,:,2], a, b)
-        edges_3 = cv.Canny(result[:,:,2], a, b)
-        # edges = cv.Canny(hsv[:,:,2], a, b)
-        filtered_y = cv.filter2D(img_scaled[:,:,0], ddepth=-1, kernel=kernel_prewitt_y)
-        filtered_x = cv.filter2D(img_scaled[:,:,0], ddepth=-1, kernel=kernel_prewitt_x)
+        canny = cv.Canny(result_norm[:,:,0], a, b)
 
+        filtered_y = cv.filter2D(result_norm, ddepth=-1, kernel=kernel_sobel_y)
+        filtered_x = cv.filter2D(result_norm, ddepth=-1, kernel=kernel_sobel_x)
         filtered_xy = cv.bitwise_or(filtered_x, filtered_y)
+        filtered_xy = cv.cvtColor(filtered_xy, cv.COLOR_BGR2GRAY)
+        filtered_xy = cv.erode(filtered_xy, kernel, iterations=erosions)
+        filtered_xy = cv.dilate(filtered_xy, kernel, iterations=1)
+        ret, filtered_xy = cv.threshold(filtered_xy, 35, 255, cv.THRESH_BINARY)
+        filtered_xy = cv.medianBlur(filtered_xy, 3)
 
-        ret, thresh_filtered = cv.threshold(filtered_xy, threshold, 255, cv.THRESH_BINARY)
-        filtered_xy = cv.dilate(thresh_filtered, kernel, iterations=dilations)
-        # filtered_y = cv.Canny(filtered_y, 37, 87)
+        # edges = cv.bitwise_or(filtered_xy, hsv_all)
+        edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, np.ones((3, 3), np.uint8))
 
-        # ret, thresh = cv.threshold(gray_norm, threshold, 255, cv.THRESH_BINARY)
-        adaptive_threshold = cv.adaptiveThreshold(result_norm[:,:,0], 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY,
-                                             round_up_to_odd(block_size), C)
-
-        # adaptive_threshold = cv.dilate(adaptive_threshold, kernel, iterations=1)
-        adaptive_threshold = cv.erode(adaptive_threshold, kernel, iterations=3)
-        adaptive_threshold = cv.bitwise_not(adaptive_threshold)
-
-        # cv.imshow('adaptive', adaptive_threshold)
-        # adaptive_threshold = cv.medianBlur(adaptive_threshold, 21)
-
-        edges = cv.bitwise_or(edges, filtered_xy)
-        edges = cv.bitwise_or(edges, adaptive_threshold)
-
-
-        edges = cv.erode(edges, kernel, iterations=erosions)
-        # edges = cv.dilate(edges, kernel, iterations=dilations)
-        # edges_2 = cv.erode(edges_2, kernel, iterations=erosions)
-        # edges_2 = cv.dilate(edges_2, kernel, iterations=dilations)
-        # edges_3 = cv.erode(edges_3, kernel, iterations=erosions)
-        # edges_3 = cv.dilate(edges_3, kernel, iterations=dilations)
-
-        # edges = cv.GaussianBlur(edges, (5, 5), 0)
-
-        # edges = cv.bitwise_or(edges, filtered_y)
-
-        # erosion = cv.medianBlur(erosion, 5)
-        edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, np.ones((7, 7), np.uint8))
-        # edges_2 = cv.morphologyEx(edges_2, cv.MORPH_CLOSE, np.ones((21, 21), np.uint8))
-        # edges_3 = cv.morphologyEx(edges_3, cv.MORPH_CLOSE, np.ones((21, 21), np.uint8))
-
-
-
-        # edges = cv.bitwise_or(edges, edges_2)
-        # edges = cv.bitwise_or(edges, edges_3)
-
-
-
-        edges_fill = fillhole(edges)
-
-
-        cv.imshow('img', result)
-        cv.imshow('edges', edges)
-        # cv.imshow('edges_inv', edges_inv)
-        cv.imshow('edges_fill', edges_fill)
-        cv.imshow('hsv', mask1)
-        cv.imshow('hsv_to_watch', mask1)
-        # cv.imshow('sobel', filtered_xy)
+        cv.imshow('hsv_all', edges)
 
 
         key_code = cv.waitKey(10)
@@ -280,13 +236,13 @@ def main():
     bounding_boxes = []
     filtered_contours = []
     for contour in contours:
-        if 20000 > cv.contourArea(contour) >= 3500:
+        if 10000 > cv.contourArea(contour) >= 3500:
             # cv.drawContours(img_scaled, contour, -1, (0, 255, 0), 3)
             filtered_contours.append(contour)
             x, y, w, h = cv.boundingRect(contour)
             bounding_boxes.append((x, y, w, h))
             cv.rectangle(img_scaled, (x, y), (x+w, y+h), (0, 255, 0), 2)
-    cv.drawContours(img_scaled, filtered_contours[6], -1, (0, 255, 0), 3)
+    cv.drawContours(img_scaled, filtered_contours, -1, (0, 255, 0), 3)
     cv.imshow('contours', img_scaled)
 
 
@@ -309,12 +265,12 @@ def main():
     mask_3_color_scaled = cv.resize(mask_3_color, fx=0.25, fy=0.25, dsize=None)
     print('l blocks: \n')
     results[2], data_3 = match_contours(filtered_contours, mask_3_color_scaled)
-    results[2], data_3_2 = match_contours(filtered_contours, mask_2_color_scaled)
-    for idx, x in enumerate(data_3):
-        for idy, y in enumerate(data_3_2):
-            if x[0] == y[0]:
-                if data_3[idx][1] > data_3_2[idy][1]:
-                    data_3[idx] = data_3_2[idy]
+    # results[2], data_3_2 = match_contours(filtered_contours, mask_2_color_scaled)
+    # for idx, x in enumerate(data_3):
+    #     for idy, y in enumerate(data_3_2):
+    #         if x[0] == y[0]:
+    #             if data_3[idx][1] > data_3_2[idy][1]:
+    #                 data_3[idx] = data_3_2[idy]
 
 
 
@@ -333,12 +289,12 @@ def main():
     print('z and s blocks: \n')
 
     results[4], data_5 = match_contours(filtered_contours, mask_5_color_scaled)
-    results[4], data_5_2 = match_contours(filtered_contours, mask_4_color_scaled)
-    for idx, x in enumerate(data_5):
-        for idy, y in enumerate(data_5_2):
-            if x[0] == y[0]:
-                if data_5[idx][1] > data_5_2[idy][1]:
-                    data_5[idx] = data_5_2[idy]
+    # results[4], data_5_2 = match_contours(filtered_contours, mask_4_color_scaled)
+    # for idx, x in enumerate(data_5):
+    #     for idy, y in enumerate(data_5_2):
+    #         if x[0] == y[0]:
+    #             if data_5[idx][1] > data_5_2[idy][1]:
+    #                 data_5[idx] = data_5_2[idy]
 
 
     choose_lower(data_5, data_3)
