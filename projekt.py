@@ -70,7 +70,7 @@ def match_contours(filtered_contours, mask_color):
     # print(len(contours_mask))
     for idx, contour in enumerate(filtered_contours):
         ret = cv.matchShapes(contour, contours_mask[0], 3, 0.0)
-        if ret < 0.25:
+        if ret < 0.15:
             print(idx, ret)
             result += 1
             data.append((idx, ret))
@@ -110,7 +110,7 @@ def main():
     for filename in os.listdir('./projekt/'):
 
         img = cv.imread(os.path.join('./projekt/',filename))
-        # img = cv.imread('./projekt/img_003.jpg')
+        # img = cv.imread('./projekt/img_010.jpg')
         img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
         gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
         hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -151,6 +151,10 @@ def main():
         hsv_all = cv.bitwise_or(hsv_all, hsv_green)
         hsv_all = cv.bitwise_or(hsv_all, hsv_yellow)
         hsv_all = cv.bitwise_or(hsv_all, hsv_white)
+
+        hsv_no_whites = cv.bitwise_or(hsv_blue, hsv_red)
+        hsv_no_whites = cv.bitwise_or(hsv_no_whites, hsv_green)
+        hsv_no_whites = cv.bitwise_or(hsv_no_whites, hsv_yellow)
 
 
         # shadow removal
@@ -259,6 +263,7 @@ def main():
 
             edges = cv.bitwise_or(edges, filtered_xy)
             edges = cv.bitwise_or(edges, adaptive_threshold)
+            edges = cv.bitwise_or(edges, hsv_no_whites)
 
 
             edges = cv.erode(edges, kernel, iterations=erosions)
@@ -307,8 +312,15 @@ def main():
 
         bounding_boxes = []
         filtered_contours = []
+        biggest_contour_area = 0
+
         for contour in contours:
-            if 20000 > cv.contourArea(contour) >= 5500:
+            contour_area = cv.contourArea(contour)
+            if contour_area > biggest_contour_area:
+                biggest_contour_area = contour_area
+
+        for contour in contours:
+            if 20000 > cv.contourArea(contour) >= biggest_contour_area/1.5:
                 # cv.drawContours(img_scaled, contour, -1, (0, 255, 0), 3)
                 filtered_contours.append(contour)
                 x, y, w, h = cv.boundingRect(contour)
@@ -420,7 +432,7 @@ def main():
 
         # hsv_all = cv.bitwise_and(img_scaled, img_scaled, mask=hsv_colors[0][0])
 
-        cv.imshow('hsv_x', hsv_all)
+        # cv.imshow('hsv_x', hsv_all)
 
 
 
