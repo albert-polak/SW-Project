@@ -82,7 +82,7 @@ def check_convex(data_1, data_2, filtered_contours):
 
 
 def main():
-    img = cv.imread('projekt/img_004.jpg')
+    img = cv.imread('projekt/img_002.jpg')
     img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
     gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
     hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -124,6 +124,10 @@ def main():
     hsv_all = cv.bitwise_or(hsv_all, hsv_yellow)
     hsv_all = cv.bitwise_or(hsv_all, hsv_white)
 
+    hsv_no_whites = cv.bitwise_or(hsv_blue, hsv_red)
+    hsv_no_whites = cv.bitwise_or(hsv_no_whites, hsv_green)
+    hsv_no_whites = cv.bitwise_or(hsv_no_whites, hsv_yellow)
+
 
     # shadow removal
     # https://stackoverflow.com/questions/44752240/how-to-remove-shadow-from-scanned-images-using-opencv
@@ -153,12 +157,12 @@ def main():
     kernel = np.ones((3, 3), np.uint8)
     kernel_prewitt_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32) / 3.0
     kernel_prewitt_x = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]], dtype=np.float32) / 3.0
-    kernel_sobel_y = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]], dtype=np.float32)
-    kernel_sobel_x = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]], dtype=np.float32)
+    kernel_sobel_y = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]], dtype=np.float32) / 4.0
+    kernel_sobel_x = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]], dtype=np.float32) / 4.0
 
     # C = 19
-    C = 30
-    block_size = 26 #72
+    C = 13
+    block_size = 255 #72
     # a = 138
     a = 100
     b = 148
@@ -187,7 +191,7 @@ def main():
     cv.createTrackbar('a', 'edges', a, 255, empty_callback)
     cv.createTrackbar('b', 'edges', b, 255, empty_callback)
 
-    edges = hsv_all
+
 
     while True:
         threshold = cv.getTrackbarPos('threshold', 'img')
@@ -205,6 +209,8 @@ def main():
         saturation_high = cv.getTrackbarPos('saturation_high', 'hsv')
         value_high = cv.getTrackbarPos('value_high', 'hsv')
 
+        edges = hsv_no_whites
+
         mask1 = cv.inRange(hsv, (hue_low, saturation_low, value_low), (hue_high, saturation_high, value_high))
 
         canny = cv.Canny(result_norm[:,:,0], a, b)
@@ -218,7 +224,15 @@ def main():
         ret, filtered_xy = cv.threshold(filtered_xy, 35, 255, cv.THRESH_BINARY)
         filtered_xy = cv.medianBlur(filtered_xy, 3)
 
-        # edges = cv.bitwise_or(filtered_xy, hsv_all)
+        adaptive_threshold = cv.adaptiveThreshold(result_norm[:, :, 0], 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                                  cv.THRESH_BINARY,
+                                                  round_up_to_odd(block_size), C)
+        adaptive_threshold = cv.erode(adaptive_threshold, kernel, iterations=erosions)
+        adaptive_threshold = cv.bitwise_not(adaptive_threshold)
+
+        edges = cv.bitwise_or(adaptive_threshold, edges)
+        edges = cv.bitwise_or(filtered_xy, edges)
+
         edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, np.ones((3, 3), np.uint8))
 
         cv.imshow('hsv_all', edges)
