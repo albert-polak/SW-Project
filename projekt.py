@@ -110,7 +110,7 @@ def main():
     for filename in os.listdir('./projekt/'):
 
         img = cv.imread(os.path.join('./projekt/',filename))
-        # img = cv.imread('./projekt/img_010.jpg')
+        # img = cv.imread('./projekt/img_014.jpg')
         img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
         gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
         hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -180,7 +180,7 @@ def main():
 
         # threshold = 8 #30
         threshold = 255
-        erosions = 0
+        erosions = 2
         dilations = 0
         kernel = np.ones((3, 3), np.uint8)
         kernel_prewitt_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32) / 3.0
@@ -191,9 +191,10 @@ def main():
         # C = 19
         C = 30
         block_size = 26 #72
-        # a = 138
-        a = 100
-        b = 148
+        # a = 100
+        a = 70
+        # b = 160
+        b = 210
         # b = 37
 
         hue_low = 68
@@ -237,7 +238,8 @@ def main():
 
             mask1 = cv.inRange(hsv, (hue_low, saturation_low, value_low), (hue_high, saturation_high, value_high))
 
-            edges = cv.Canny(result_norm[:,:,0], a, b)
+            edges = cv.Canny(result_norm, a, b)
+            edges = cv.dilate(edges, kernel, iterations=1)
             edges_2 = cv.Canny(result_norm[:,:,2], a, b)
             edges_3 = cv.Canny(result[:,:,2], a, b)
             # edges = cv.Canny(hsv[:,:,2], a, b)
@@ -320,7 +322,7 @@ def main():
                 biggest_contour_area = contour_area
 
         for contour in contours:
-            if 20000 > cv.contourArea(contour) >= biggest_contour_area/1.5:
+            if 20000 > cv.contourArea(contour) >= biggest_contour_area/1.4:
                 # cv.drawContours(img_scaled, contour, -1, (0, 255, 0), 3)
                 filtered_contours.append(contour)
                 x, y, w, h = cv.boundingRect(contour)
