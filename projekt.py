@@ -189,7 +189,7 @@ def main():
         kernel_sobel_x = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]], dtype=np.float32) / 4.0
 
         # C = 19
-        C = 30
+        C = 23
         block_size = 26 #72
         # a = 100
         a = 70
