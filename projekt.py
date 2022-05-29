@@ -70,7 +70,7 @@ def match_contours(filtered_contours, mask_color):
     # print(len(contours_mask))
     for idx, contour in enumerate(filtered_contours):
         ret = cv.matchShapes(contour, contours_mask[0], 3, 0.0)
-        if ret < 0.15:
+        if ret < 0.25:
             print(idx, ret)
             result += 1
             data.append((idx, ret))
@@ -97,7 +97,7 @@ def check_convex(data_1, data_2, filtered_contours, hull):
                 if x[0] == y[0]:
                     hull_area = cv.contourArea(hull[x[0]])
                     contour_area = cv.contourArea(filtered_contours[x[0]])
-                    if hull_area - contour_area > 1000:
+                    if hull_area - contour_area > 600:
                         data_2[idy] = None
                     else:
                         data_1[idx] = None
@@ -112,7 +112,7 @@ def main():
     for filename in os.listdir('./projekt/'):
 
         img = cv.imread(os.path.join('./projekt/',filename))
-        # img = cv.imread('./projekt/img_003.jpg')
+        # img = cv.imread('./projekt/img_007.jpg')
         img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
         gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
         hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
