@@ -90,12 +90,14 @@ def choose_lower(data_1, data_2):
     data_2[:] = list(filter(None, data_2))
 
 
-def check_convex(data_1, data_2, filtered_contours):
+def check_convex(data_1, data_2, filtered_contours, hull):
     for idx, x in enumerate(data_1):
         for idy, y in enumerate(data_2):
             if x is not None and y is not None:
                 if x[0] == y[0]:
-                    if cv.isContourConvex(filtered_contours[x[0]]):
+                    hull_area = cv.contourArea(hull[x[0]])
+                    contour_area = cv.contourArea(filtered_contours[x[0]])
+                    if hull_area - contour_area > 1000:
                         data_2[idy] = None
                     else:
                         data_1[idx] = None
@@ -110,7 +112,7 @@ def main():
     for filename in os.listdir('./projekt/'):
 
         img = cv.imread(os.path.join('./projekt/',filename))
-        # img = cv.imread('./projekt/img_014.jpg')
+        # img = cv.imread('./projekt/img_003.jpg')
         img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
         gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
         hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -331,7 +333,7 @@ def main():
                 biggest_contour_area = contour_area
 
         contours_mask = np.zeros(img_scaled.shape[:2],dtype=np.uint8)
-
+        hull_list = []
         for contour in contours:
             if 20000 > cv.contourArea(contour) >= biggest_contour_area/1.6:
                 # cv.drawContours(img_scaled, contour, -1, (0, 255, 0), 3)
@@ -339,12 +341,17 @@ def main():
                 x, y, w, h = cv.boundingRect(contour)
                 bounding_boxes.append((x, y, w, h))
                 cv.rectangle(img_scaled, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                hull = cv.convexHull(contour)
+                hull_list.append(hull)
+
                 # cv.fillConvexPoly(img_scaled, contour, (255, 255, 255))
         # cv.polylines(img_scaled, filtered_contours, False, (255, 255, 255), 3)
         cv.drawContours(img_scaled, filtered_contours, -1, (0, 255, 0), 3)
+        cv.drawContours(img_scaled, hull_list, -1, (255, 0, 0), 3)
         cv.fillPoly(contours_mask, filtered_contours, 255)
 
         cv.imshow('contours', img_scaled)
+
 
 
         # 8x2 block
@@ -397,7 +404,8 @@ def main():
                     if data_5[idx][1] > data_5_2[idy][1]:
                         data_5[idx] = data_5_2[idy]
 
-
+        check_convex(data_2, data_4, filtered_contours, hull_list)
+        check_convex(data_3, data_4, filtered_contours, hull_list)
         choose_lower(data_5, data_3)
         choose_lower(data_5, data_1)
         choose_lower(data_5, data_4)
@@ -410,8 +418,7 @@ def main():
         choose_lower(data_3, data_1)
         choose_lower(data_3, data_2)
         choose_lower(data_2, data_1)
-        check_convex(data_2, data_4, filtered_contours)
-        check_convex(data_3, data_4, filtered_contours)
+
 
 
 
