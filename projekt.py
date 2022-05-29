@@ -183,8 +183,8 @@ def main():
         erosions = 2
         dilations = 0
         kernel = np.ones((3, 3), np.uint8)
-        kernel_prewitt_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32) / 3.0
-        kernel_prewitt_x = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]], dtype=np.float32) / 3.0
+        kernel_prewitt_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32)
+        kernel_prewitt_x = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]], dtype=np.float32)
         kernel_sobel_y = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]], dtype=np.float32) / 4.0
         kernel_sobel_x = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]], dtype=np.float32) / 4.0
 
@@ -243,13 +243,22 @@ def main():
             edges_2 = cv.Canny(result_norm[:,:,2], a, b)
             edges_3 = cv.Canny(result[:,:,2], a, b)
             # edges = cv.Canny(hsv[:,:,2], a, b)
-            filtered_y = cv.filter2D(img_scaled[:,:,0], ddepth=-1, kernel=kernel_prewitt_y)
-            filtered_x = cv.filter2D(img_scaled[:,:,0], ddepth=-1, kernel=kernel_prewitt_x)
+            filtered_y = cv.filter2D(img_scaled, ddepth=-1, kernel=kernel_sobel_y)
+            filtered_x = cv.filter2D(img_scaled, ddepth=-1, kernel=kernel_sobel_x)
 
             filtered_xy = cv.bitwise_or(filtered_x, filtered_y)
+            # filtered_xy = filtered_xy * 4
 
-            ret, thresh_filtered = cv.threshold(filtered_xy, threshold, 255, cv.THRESH_BINARY)
-            filtered_xy = cv.dilate(thresh_filtered, kernel, iterations=dilations)
+            # filtered_xy = cv.dilate(filtered_xy, kernel, iterations=dilations)
+
+            # filtered_xy = cv.cvtColor(filtered_xy, cv.COLOR_BGR2GRAY)
+            filtered_xy = cv.Canny(filtered_xy, a, b)
+
+
+            # ret, filtered_xy = cv.threshold(filtered_xy, threshold, 255, cv.THRESH_BINARY)
+            filtered_xy = cv.medianBlur(filtered_xy, 3)
+            filtered_xy = cv.dilate(filtered_xy, kernel, iterations=dilations)
+            # cv.imshow('filteredxy sobel', filtered_xy)
             # filtered_y = cv.Canny(filtered_y, 37, 87)
 
             # ret, thresh = cv.threshold(gray_norm, threshold, 255, cv.THRESH_BINARY)
@@ -263,9 +272,8 @@ def main():
             # cv.imshow('adaptive', adaptive_threshold)
             # adaptive_threshold = cv.medianBlur(adaptive_threshold, 21)
 
-            edges = cv.bitwise_or(edges, filtered_xy)
+            # edges = cv.bitwise_or(edges, filtered_xy)
             edges = cv.bitwise_or(edges, adaptive_threshold)
-            edges = cv.bitwise_or(edges, hsv_no_whites)
 
 
             edges = cv.erode(edges, kernel, iterations=erosions)
@@ -283,6 +291,7 @@ def main():
             edges = cv.morphologyEx(edges, cv.MORPH_CLOSE, np.ones((7, 7), np.uint8))
             # edges_2 = cv.morphologyEx(edges_2, cv.MORPH_CLOSE, np.ones((21, 21), np.uint8))
             # edges_3 = cv.morphologyEx(edges_3, cv.MORPH_CLOSE, np.ones((21, 21), np.uint8))
+            edges = cv.bitwise_or(edges, hsv_no_whites)
 
 
 
@@ -321,16 +330,19 @@ def main():
             if contour_area > biggest_contour_area:
                 biggest_contour_area = contour_area
 
+        contours_mask = np.zeros(img_scaled.shape[:2],dtype=np.uint8)
+
         for contour in contours:
-            if 20000 > cv.contourArea(contour) >= biggest_contour_area/1.4:
+            if 20000 > cv.contourArea(contour) >= biggest_contour_area/1.6:
                 # cv.drawContours(img_scaled, contour, -1, (0, 255, 0), 3)
                 filtered_contours.append(contour)
                 x, y, w, h = cv.boundingRect(contour)
                 bounding_boxes.append((x, y, w, h))
-                cv.rectangle(img_scaled, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                cv.fillConvexPoly(img_scaled, contour, (255, 255, 255))
+                cv.rectangle(img_scaled, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                # cv.fillConvexPoly(img_scaled, contour, (255, 255, 255))
         # cv.polylines(img_scaled, filtered_contours, False, (255, 255, 255), 3)
         cv.drawContours(img_scaled, filtered_contours, -1, (0, 255, 0), 3)
+        cv.fillPoly(contours_mask, filtered_contours, 255)
 
         cv.imshow('contours', img_scaled)
 
@@ -402,6 +414,7 @@ def main():
         check_convex(data_3, data_4, filtered_contours)
 
 
+
         results[0] = len(data_1)
         results[1] = len(data_2)
         results[2] = len(data_3)
@@ -411,7 +424,7 @@ def main():
 
         for bb in bounding_boxes:
 
-            tmp = img_scaled_pure[bb[1]:bb[1]+bb[3], bb[0]:bb[0]+bb[2], :]
+            tmp =  contours_mask[bb[1]:bb[1]+bb[3], bb[0]:bb[0]+bb[2]]
 
             hsvs = []
             # cv.imshow('tmp', tmp)

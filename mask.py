@@ -6,7 +6,7 @@ def emptycallback(x):
 
 
 def make_mask():
-    im_number = 6
+    im_number = 5
 
     img = cv.imread(f'klocki/{im_number}.jpg')
 
