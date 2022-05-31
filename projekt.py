@@ -242,8 +242,8 @@ def main():
 
             edges = cv.Canny(result_norm, a, b)
             edges = cv.dilate(edges, kernel, iterations=1)
-            edges_2 = cv.Canny(result_norm[:,:,2], a, b)
-            edges_3 = cv.Canny(result[:,:,2], a, b)
+            # edges_2 = cv.Canny(result_norm[:,:,2], a, b)
+            # edges_3 = cv.Canny(result[:,:,2], a, b)
             # edges = cv.Canny(hsv[:,:,2], a, b)
             filtered_y = cv.filter2D(img_scaled, ddepth=-1, kernel=kernel_sobel_y)
             filtered_x = cv.filter2D(img_scaled, ddepth=-1, kernel=kernel_sobel_x)
