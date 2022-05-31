@@ -112,7 +112,7 @@ def main():
     for filename in os.listdir('./projekt/'):
 
         img = cv.imread(os.path.join('./projekt/',filename))
-        # img = cv.imread('./projekt/img_007.jpg')
+        # img = cv.imread('./projekt/img_002.jpg')
         img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
         gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
         hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -342,6 +342,13 @@ def main():
                 bounding_boxes.append((x, y, w, h))
                 cv.rectangle(img_scaled, (x, y), (x+w, y+h), (0, 0, 255), 2)
                 hull = cv.convexHull(contour)
+                hull_list.append(hull)
+            elif 20000 > cv.contourArea(cv.convexHull(contour)) >= biggest_contour_area/1.2:
+                hull = cv.convexHull(contour)
+                x, y, w, h = cv.boundingRect(contour)
+                bounding_boxes.append((x, y, w, h))
+                cv.rectangle(img_scaled, (x, y), (x + w, y + h), (0, 0, 255), 2)
+                filtered_contours.append(hull)
                 hull_list.append(hull)
 
                 # cv.fillConvexPoly(img_scaled, contour, (255, 255, 255))
