@@ -112,7 +112,7 @@ def main():
     for filename in os.listdir('./projekt/'):
 
         img = cv.imread(os.path.join('./projekt/',filename))
-        # img = cv.imread('./projekt/img_002.jpg')
+        # img = cv.imread('./projekt/img_005.jpg')
         img_scaled = cv.resize(img, fx=0.3, fy=0.3, dsize=None)
         gray_scaled = cv.cvtColor(img_scaled, cv.COLOR_BGR2GRAY)
         hsv = cv.cvtColor(img_scaled, cv.COLOR_BGR2HSV)
@@ -147,6 +147,7 @@ def main():
 
         # hsv white
         hsv_white = cv.inRange(hsv, (20, 0, 168), (200, 91, 204))
+        # hsv_white = cv.inRange(hsv, (20, 0, 197), (200, 91, 204))
         hsv_colors.append((hsv_white, 8))
 
         hsv_all = cv.bitwise_or(hsv_blue, hsv_red)
@@ -199,12 +200,13 @@ def main():
         b = 210
         # b = 37
 
-        hue_low = 68
-        saturation_low = 11
-        value_low = 177
-        hue_high = 101
-        saturation_high = 30
-        value_high = 186
+        # (20, 0, 168), (200, 91, 204)
+        hue_low = 20
+        saturation_low = 0
+        value_low = 168
+        hue_high = 200
+        saturation_high = 91
+        value_high = 204
 
         cv.createTrackbar('hue_low', 'hsv', hue_low, 255, empty_callback)
         cv.createTrackbar('saturation_low', 'hsv', saturation_low, 255, empty_callback)
@@ -239,6 +241,7 @@ def main():
             value_high = cv.getTrackbarPos('value_high', 'hsv')
 
             mask1 = cv.inRange(hsv, (hue_low, saturation_low, value_low), (hue_high, saturation_high, value_high))
+            mask1 = cv.erode(mask1, np.ones((3, 3)), iterations=2)
 
             edges = cv.Canny(result_norm, a, b)
             edges = cv.dilate(edges, kernel, iterations=1)
@@ -309,8 +312,8 @@ def main():
             cv.imshow('edges', edges)
             # cv.imshow('edges_inv', edges_inv)
             cv.imshow('edges_fill', edges_fill)
-            # cv.imshow('hsv', mask1)
-            # cv.imshow('hsv_to_watch', mask1)
+            cv.imshow('hsv', mask1)
+            cv.imshow('hsv_to_watch', mask1)
             # cv.imshow('sobel', filtered_xy)
 
 
@@ -444,7 +447,7 @@ def main():
             # cv.imshow('tmp', tmp)
             for hsv in hsv_colors:
                 temp_color = cv.bitwise_and(tmp, tmp, mask=cv.erode(hsv[0][bb[1]:bb[1]+bb[3], bb[0]:bb[0]+bb[2]],
-                                                                    np.ones((3, 3)), iterations=3))
+                                                                    np.ones((3, 3)), iterations=2))
                 # cv.imshow('temp_color', temp_color)
                 # cv.imshow('hsv_colors', cv.erode(hsv[0][bb[1]:bb[1]+bb[3], bb[0]:bb[0]+bb[2]], np.ones((3, 3)),
                 #                                  iterations=3))
